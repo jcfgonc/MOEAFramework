@@ -15,6 +15,10 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with the MOEA Framework.  If not, see <http://www.gnu.org/licenses/>.
  */
+
+/**
+ * modified by jcfgonc to support inner parallelism
+ */
 package org.moeaframework.algorithm;
 
 import java.io.NotSerializableException;
@@ -25,6 +29,7 @@ import org.moeaframework.core.Algorithm;
 import org.moeaframework.core.Problem;
 import org.moeaframework.core.Solution;
 
+import stream.ParallelConsumer;
 /**
  * Abstract class providing default implementations for several
  * {@link Algorithm} methods. All method extending this class must use the
@@ -58,6 +63,7 @@ public abstract class AbstractAlgorithm implements Algorithm {
 	 * {@code false} otherwise.
 	 */
 	protected boolean terminated;
+	private ParallelConsumer<Solution> parallelConsumer;
 
 	/**
 	 * Constructs an abstract algorithm for solving the specified problem.
@@ -67,6 +73,7 @@ public abstract class AbstractAlgorithm implements Algorithm {
 	public AbstractAlgorithm(Problem problem) {
 		super();
 		this.problem = problem;
+		this.parallelConsumer = new ParallelConsumer<Solution>();
 	}
 
 	/**

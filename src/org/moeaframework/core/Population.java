@@ -19,12 +19,14 @@ package org.moeaframework.core;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.stream.Stream;
 
 /**
  * A collection of solutions and common methods for manipulating the collection.
@@ -299,6 +301,13 @@ public class Population implements Iterable<Solution> {
 		}
 	}
 
+	public Stream<Solution> parallelStream() {
+		return data.parallelStream();
+	}
+
+	public Stream<Solution> stream() {
+		return data.stream();
+	}
 	/*
 	 * The following code is based on the Apache Commons Collections library.
 	 * This is to provide a similar iterator behavior to other collection
@@ -413,6 +422,14 @@ public class Population implements Iterable<Solution> {
 			if (modCount != expectedModCount) {
 				throw new ConcurrentModificationException();
 			}
+		}
+		/**
+		 * jcfgonc - returns the inner list of Solution
+		 * 
+		 * @return
+		 */
+		public Collection<Solution> getElements() {
+			return data;
 		}
 	}
 

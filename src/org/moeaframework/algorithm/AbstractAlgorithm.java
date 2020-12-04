@@ -24,8 +24,10 @@ package org.moeaframework.algorithm;
 import java.io.NotSerializableException;
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.List;
 
 import org.moeaframework.core.Algorithm;
+import org.moeaframework.core.Population;
 import org.moeaframework.core.Problem;
 import org.moeaframework.core.Solution;
 
@@ -84,10 +86,38 @@ public abstract class AbstractAlgorithm implements Algorithm {
 	 * 
 	 * @param solutions the solutions to evaluate
 	 */
-	public void evaluateAll(Iterable<Solution> solutions) {
-		for (Solution solution : solutions) {
-			evaluate(solution);
+	public void evaluateAll(Population solutions) {
+		try {
+			parallelConsumer.parallelForEach(solutions.getElements(), solution -> {
+				evaluate(solution);
+			});
+		} catch (InterruptedException e) {
+			e.printStackTrace();
 		}
+//		solutions.parallelStream().forEach(solution -> {
+//			evaluate(solution);
+//		});
+
+// for (Solution solution : solutions) {
+//		evaluate(solution);
+//	}
+	}
+
+	public void evaluateAll(List<Solution> solutions) {
+		try {
+			parallelConsumer.parallelForEach(solutions, solution -> {
+				evaluate(solution);
+			});
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+//		solutions.parallelStream().forEach(solution -> {
+//			evaluate(solution);
+//		});
+
+//		for (Solution solution : solutions) {
+//			evaluate(solution);
+//		}
 	}
 	
 	/**
@@ -103,12 +133,14 @@ public abstract class AbstractAlgorithm implements Algorithm {
 	@Override
 	public void evaluate(Solution solution) {
 		problem.evaluate(solution);
-		numberOfEvaluations++;
+//		numberOfEvaluations++;
 	}
 
 	@Override
 	public int getNumberOfEvaluations() {
-		return numberOfEvaluations;
+		System.out.println("check getNumberOfEvaluations() invocation in MOEA Framework");
+		return 0;
+//		return numberOfEvaluations;
 	}
 
 	@Override

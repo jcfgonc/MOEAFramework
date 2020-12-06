@@ -423,14 +423,15 @@ public class Population implements Iterable<Solution> {
 				throw new ConcurrentModificationException();
 			}
 		}
-		/**
-		 * jcfgonc - returns the inner list of Solution
-		 * 
-		 * @return
-		 */
-		public Collection<Solution> getElements() {
-			return data;
-		}
+	}
+
+	/**
+	 * jcfgonc - returns the inner list of Solution
+	 * 
+	 * @return
+	 */
+	public Collection<Solution> getElements() {
+		return data;
 	}
 
 }

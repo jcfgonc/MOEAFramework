@@ -37,6 +37,8 @@ import org.moeaframework.core.comparator.DominanceComparator;
 import org.moeaframework.core.comparator.ParetoDominanceComparator;
 import org.moeaframework.core.operator.TournamentSelection;
 
+import structures.Ticker;
+
 /**
  * Implementation of NSGA-II, with the ability to attach an optional 
  * &epsilon;-dominance archive.
@@ -130,11 +132,13 @@ public class NSGAII extends AbstractEvolutionaryAlgorithm implements
 		} else {
 			// run NSGA-II using selection with replacement; this version allows
 			// using custom selection operators
+			// jcfgonc: this loop takes on average 50 ms for 100 elements, could be parallelized but should not improve much
 			while (offspring.size() < populationSize) {
-				Solution[] parents = selection.select(variation.getArity(),
+				int arity = variation.getArity();
+				Solution[] parents = selection.select(arity,
 						population);
-
-				offspring.addAll(variation.evolve(parents));
+				Solution[] child = variation.evolve(parents);
+				offspring.addAll(child);
 			}
 		}
 

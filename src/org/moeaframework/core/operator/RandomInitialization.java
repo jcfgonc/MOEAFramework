@@ -22,10 +22,11 @@ import org.moeaframework.core.Problem;
 import org.moeaframework.core.Solution;
 import org.moeaframework.core.Variable;
 
+import stream.ParallelConsumer;
+import utils.VariousUtils;
+
 /**
- * Initializes all built-in decision variables randomly. The
- * {@link #initialize(Variable)} method can be extended to provide support for
- * other types.
+ * Initializes all built-in decision variables randomly. The {@link #initialize(Variable)} method can be extended to provide support for other types.
  */
 public class RandomInitialization implements Initialization {
 
@@ -39,38 +40,48 @@ public class RandomInitialization implements Initialization {
 	 */
 	protected final int populationSize;
 
+	private ParallelConsumer<Solution> parallelConsumer;
+
 	/**
 	 * Constructs a random initialization operator.
 	 * 
-	 * @param problem the problem
+	 * @param problem        the problem
 	 * @param populationSize the initial population size
 	 */
 	public RandomInitialization(Problem problem, int populationSize) {
 		super();
 		this.problem = problem;
 		this.populationSize = populationSize;
+		this.parallelConsumer = new ParallelConsumer<Solution>();
 	}
 
 	@Override
 	public Solution[] initialize() {
 		Solution[] initialPopulation = new Solution[populationSize];
 
-		for (int i = 0; i < populationSize; i++) {
-			Solution solution = problem.newSolution();
+		// parallelized by jcfgonc
 
-			for (int j = 0; j < solution.getNumberOfVariables(); j++) {
-				solution.getVariable(j).randomize();
-			}
+		int[] indices = VariousUtils.intRange(0, populationSize);
 
-			initialPopulation[i] = solution;
+		try {
+			parallelConsumer.parallelForEach(indices, i -> {
+				Solution solution = problem.newSolution();
+
+				for (int j = 0; j < solution.getNumberOfVariables(); j++) {
+					solution.getVariable(j).randomize();
+				}
+
+				initialPopulation[i] = solution;
+			});
+			parallelConsumer.shutdown(); // initialization should be run only once
+		} catch (InterruptedException e) {
 		}
 
 		return initialPopulation;
 	}
 
 	/**
-	 * Initializes the specified decision variable randomly. This method
-	 * supports all built-in types, and can be extended to support custom types.
+	 * Initializes the specified decision variable randomly. This method supports all built-in types, and can be extended to support custom types.
 	 * 
 	 * @param variable the variable to be initialized
 	 * @deprecated Call variable.randomize() instead

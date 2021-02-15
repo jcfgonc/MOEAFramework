@@ -65,7 +65,8 @@ public abstract class AbstractAlgorithm implements Algorithm {
 	 * {@code false} otherwise.
 	 */
 	protected boolean terminated;
-	private ParallelConsumer<Solution> parallelConsumer;
+	
+	private static ParallelConsumer<Solution> parallelConsumer;
 
 	/**
 	 * Constructs an abstract algorithm for solving the specified problem.
@@ -75,7 +76,10 @@ public abstract class AbstractAlgorithm implements Algorithm {
 	public AbstractAlgorithm(Problem problem) {
 		super();
 		this.problem = problem;
-		this.parallelConsumer = new ParallelConsumer<Solution>();
+		if (AbstractAlgorithm.parallelConsumer == null) {
+			AbstractAlgorithm.parallelConsumer = new ParallelConsumer<Solution>();
+			System.out.printf("using %d threads for the objective evaluation\n", parallelConsumer.getNumberOfThreads());
+		}
 	}
 
 	/**
@@ -88,7 +92,7 @@ public abstract class AbstractAlgorithm implements Algorithm {
 	 */
 	public void evaluateAll(Population solutions) {
 		try {
-			parallelConsumer.parallelForEach(solutions.getElements(), solution -> {
+			AbstractAlgorithm.parallelConsumer.parallelForEach(solutions.getElements(), solution -> {
 				evaluate(solution);
 			});
 		} catch (InterruptedException e) {
@@ -105,7 +109,7 @@ public abstract class AbstractAlgorithm implements Algorithm {
 
 	public void evaluateAll(List<Solution> solutions) {
 		try {
-			parallelConsumer.parallelForEach(solutions, solution -> {
+			AbstractAlgorithm.parallelConsumer.parallelForEach(solutions, solution -> {
 				evaluate(solution);
 			});
 		} catch (InterruptedException e) {
@@ -232,6 +236,7 @@ public abstract class AbstractAlgorithm implements Algorithm {
 		terminated = true;
 	}
 
+	@SuppressWarnings("deprecation")
 	@Override
 	protected void finalize() throws Throwable {
 		try {

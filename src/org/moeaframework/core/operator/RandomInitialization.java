@@ -22,7 +22,7 @@ import org.moeaframework.core.Problem;
 import org.moeaframework.core.Solution;
 import org.moeaframework.core.Variable;
 
-import stream.ParallelConsumer;
+import stream.SharedParallelConsumer;
 import utils.VariousUtils;
 
 /**
@@ -40,8 +40,6 @@ public class RandomInitialization implements Initialization {
 	 */
 	protected final int populationSize;
 
-	private ParallelConsumer<Solution> parallelConsumer;
-
 	/**
 	 * Constructs a random initialization operator.
 	 * 
@@ -52,7 +50,6 @@ public class RandomInitialization implements Initialization {
 		super();
 		this.problem = problem;
 		this.populationSize = populationSize;
-		this.parallelConsumer = new ParallelConsumer<Solution>();
 	}
 
 	@Override
@@ -64,7 +61,8 @@ public class RandomInitialization implements Initialization {
 		int[] indices = VariousUtils.intRange(0, populationSize);
 
 		try {
-			parallelConsumer.parallelForEach(indices, i -> {
+			 // Added by jcfgonc to parallelize some tasks.
+			SharedParallelConsumer.parallelForEach(indices, i -> {
 				Solution solution = problem.newSolution();
 
 				for (int j = 0; j < solution.getNumberOfVariables(); j++) {
@@ -73,7 +71,8 @@ public class RandomInitialization implements Initialization {
 
 				initialPopulation[i] = solution;
 			});
-			parallelConsumer.shutdown(); // initialization should be run only once
+			// parallel consumer is now static, should not be shutdown
+			//SharedParallelConsumer.shutdown(); // jcfgonc - initialization should be run only once
 		} catch (InterruptedException e) {
 		}
 

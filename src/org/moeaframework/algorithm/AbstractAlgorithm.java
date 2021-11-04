@@ -23,7 +23,8 @@ package org.moeaframework.algorithm;
 
 import java.io.NotSerializableException;
 import java.io.Serializable;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.moeaframework.core.Algorithm;
@@ -31,7 +32,7 @@ import org.moeaframework.core.Population;
 import org.moeaframework.core.Problem;
 import org.moeaframework.core.Solution;
 
-import stream.ParallelConsumer;
+import stream.SharedParallelConsumer;
 /**
  * Abstract class providing default implementations for several
  * {@link Algorithm} methods. All method extending this class must use the
@@ -66,7 +67,6 @@ public abstract class AbstractAlgorithm implements Algorithm {
 	 */
 	protected boolean terminated;
 	
-	private static ParallelConsumer<Solution> parallelConsumer;
 
 	/**
 	 * Constructs an abstract algorithm for solving the specified problem.
@@ -76,10 +76,6 @@ public abstract class AbstractAlgorithm implements Algorithm {
 	public AbstractAlgorithm(Problem problem) {
 		super();
 		this.problem = problem;
-		if (AbstractAlgorithm.parallelConsumer == null) {
-			AbstractAlgorithm.parallelConsumer = new ParallelConsumer<Solution>();
-			System.out.printf("using %d threads for the objective evaluation\n", parallelConsumer.getNumberOfThreads());
-		}
 	}
 
 	/**
@@ -92,10 +88,11 @@ public abstract class AbstractAlgorithm implements Algorithm {
 	 */
 	public void evaluateAll(Population solutions) {
 		try {
-			AbstractAlgorithm.parallelConsumer.parallelForEach(solutions.getElements(), solution -> {
+			 // Added by jcfgonc to parallelize some tasks.
+			SharedParallelConsumer.parallelForEach(solutions.getElements(), solution -> {
 				evaluate(solution);
 			});
-		} catch (InterruptedException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 //		solutions.parallelStream().forEach(solution -> {
@@ -109,10 +106,11 @@ public abstract class AbstractAlgorithm implements Algorithm {
 
 	public void evaluateAll(List<Solution> solutions) {
 		try {
-			AbstractAlgorithm.parallelConsumer.parallelForEach(solutions, solution -> {
+			 // Added by jcfgonc to parallelize some tasks.
+			SharedParallelConsumer.parallelForEach(solutions, solution -> {
 				evaluate(solution);
 			});
-		} catch (InterruptedException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 //		solutions.parallelStream().forEach(solution -> {
@@ -131,7 +129,10 @@ public abstract class AbstractAlgorithm implements Algorithm {
 	 * @param solutions the solutions to evaluate
 	 */
 	public void evaluateAll(Solution[] solutions) {
-		evaluateAll(Arrays.asList(solutions));
+		// jcfgonc - removed Arrays.asList(solutions) which does not create an ArrayList
+		ArrayList<Solution> arraylist = new ArrayList<Solution>(solutions.length);
+		Collections.addAll(arraylist, solutions);
+		evaluateAll(arraylist);
 	}
 
 	@Override

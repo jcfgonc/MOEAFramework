@@ -20,6 +20,7 @@ package org.moeaframework.algorithm;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.moeaframework.core.EpsilonBoxDominanceArchive;
 import org.moeaframework.core.EpsilonBoxEvolutionaryAlgorithm;
@@ -37,7 +38,7 @@ import org.moeaframework.core.comparator.DominanceComparator;
 import org.moeaframework.core.comparator.ParetoDominanceComparator;
 import org.moeaframework.core.operator.TournamentSelection;
 
-import structures.Ticker;
+import stream.SharedParallelConsumer;
 
 /**
  * Implementation of NSGA-II, with the ability to attach an optional 
@@ -67,7 +68,7 @@ public class NSGAII extends AbstractEvolutionaryAlgorithm implements
 	 * The variation operator.
 	 */
 	private final Variation variation;
-
+	
 	/**
 	 * Constructs the NSGA-II algorithm with the specified components.
 	 * 
@@ -93,7 +94,11 @@ public class NSGAII extends AbstractEvolutionaryAlgorithm implements
 		Population offspring = new Population();
 		int populationSize = population.size();
 
+//		Ticker t = new Ticker();
+
 		if (selection == null) {
+			System.err.print("running non Concurrent iterate() section - TODO jcfgonc");
+			
 			// recreate the original NSGA-II implementation using binary
 			// tournament selection without replacement; this version works by
 			// maintaining a pool of candidate parents.
@@ -132,24 +137,51 @@ public class NSGAII extends AbstractEvolutionaryAlgorithm implements
 		} else {
 			// run NSGA-II using selection with replacement; this version allows
 			// using custom selection operators
-			// jcfgonc: this loop takes on average 50 ms for 100 elements, could be parallelized but should not improve much
+			
+			// parallelized by jcfgonc@gmail.com
+			ConcurrentLinkedQueue<Solution> newChildren = new ConcurrentLinkedQueue<>();
+
 			while (offspring.size() < populationSize) {
-				int arity = variation.getArity();
-				Solution[] parents = selection.select(arity,
-						population);
-				Solution[] child = variation.evolve(parents);
-				offspring.addAll(child);
+				int missingChilds = populationSize - offspring.size();
+				try {
+					SharedParallelConsumer.parallelForEach(missingChilds, index -> {
+						int arity = variation.getArity();
+						Solution[] parents = selection.select(arity, population);
+
+						Solution[] children = variation.evolve(parents);
+
+						for (Solution child : children) {
+							newChildren.add(child);
+						}
+					});
+				} catch (Exception e) {
+					e.printStackTrace();
+					System.exit(-1);
+				}
+				offspring.addAll(newChildren);
+				newChildren.clear(); 
 			}
 		}
+//		t.getTimeDeltaLastCall();
+//		System.out.printf("NSGAII:offspring creation took %f seconds\n", t.getTimeDeltaLastCall());
 
+//		t.getTimeDeltaLastCall();
 		evaluateAll(offspring);
+//		System.out.printf("NSGAII:evaluateAll took %f seconds\n", t.getTimeDeltaLastCall());
 
 		if (archive != null) {
 			archive.addAll(offspring);
 		}
 
+//		t.getTimeDeltaLastCall();
 		population.addAll(offspring);
+//		System.out.printf("NSGAII:population.addAll took %f seconds\n", t.getTimeDeltaLastCall());
+
+//		t.getTimeDeltaLastCall();
 		population.truncate(populationSize);
+//		System.out.printf("NSGAII:population.truncate took %f seconds\n", t.getTimeDeltaLastCall());
+
+//		System.out.println("NSGAII iterate() done.");
 	}
 
 	@Override

@@ -63,13 +63,17 @@ public class RandomInitialization implements Initialization {
 		try {
 			 // Added by jcfgonc to parallelize some tasks.
 			SharedParallelConsumer.parallelForEach(indices, i -> {
-				Solution solution = problem.newSolution();
+				try {
+					Solution solution = problem.newSolution();
 
-				for (int j = 0; j < solution.getNumberOfVariables(); j++) {
-					solution.getVariable(j).randomize();
+					for (int j = 0; j < solution.getNumberOfVariables(); j++) {
+						solution.getVariable(j).randomize();
+					}
+
+					initialPopulation[i] = solution;
+				} catch (Exception e) {
+					e.printStackTrace();
 				}
-
-				initialPopulation[i] = solution;
 			});
 			// parallel consumer is now static, should not be shutdown
 			//SharedParallelConsumer.shutdown(); // jcfgonc - initialization should be run only once

@@ -41,26 +41,20 @@ import org.moeaframework.core.operator.TournamentSelection;
 import stream.SharedParallelConsumer;
 
 /**
- * Implementation of NSGA-II, with the ability to attach an optional 
- * &epsilon;-dominance archive.
+ * Implementation of NSGA-II, with the ability to attach an optional &epsilon;-dominance archive.
  * <p>
  * References:
  * <ol>
- *   <li>Deb, K. et al.  "A Fast Elitist Multi-Objective Genetic Algorithm:
- *       NSGA-II."  IEEE Transactions on Evolutionary Computation, 6:182-197, 
- *       2000.
- *   <li>Kollat, J. B., and Reed, P. M.  "Comparison of Multi-Objective 
- *       Evolutionary Algorithms for Long-Term Monitoring Design."  Advances in
- *       Water Resources, 29(6):792-807, 2006.
+ * <li>Deb, K. et al. "A Fast Elitist Multi-Objective Genetic Algorithm: NSGA-II." IEEE Transactions on Evolutionary Computation, 6:182-197, 2000.
+ * <li>Kollat, J. B., and Reed, P. M. "Comparison of Multi-Objective Evolutionary Algorithms for Long-Term Monitoring Design." Advances in Water Resources,
+ * 29(6):792-807, 2006.
  * </ol>
  */
-public class NSGAII extends AbstractEvolutionaryAlgorithm implements
-		EpsilonBoxEvolutionaryAlgorithm {
+public class NSGAII extends AbstractEvolutionaryAlgorithm implements EpsilonBoxEvolutionaryAlgorithm {
 
 	/**
-	 * The selection operator.  If {@code null}, this algorithm uses binary
-	 * tournament selection without replacement, replicating the behavior of the
-	 * original NSGA-II implementation.
+	 * The selection operator. If {@code null}, this algorithm uses binary tournament selection without replacement, replicating the behavior of the original
+	 * NSGA-II implementation.
 	 */
 	private final Selection selection;
 
@@ -68,20 +62,19 @@ public class NSGAII extends AbstractEvolutionaryAlgorithm implements
 	 * The variation operator.
 	 */
 	private final Variation variation;
-	
+
 	/**
 	 * Constructs the NSGA-II algorithm with the specified components.
 	 * 
-	 * @param problem the problem being solved
-	 * @param population the population used to store solutions
-	 * @param archive the archive used to store the result; can be {@code null}
-	 * @param selection the selection operator
-	 * @param variation the variation operator
+	 * @param problem        the problem being solved
+	 * @param population     the population used to store solutions
+	 * @param archive        the archive used to store the result; can be {@code null}
+	 * @param selection      the selection operator
+	 * @param variation      the variation operator
 	 * @param initialization the initialization method
 	 */
-	public NSGAII(Problem problem, NondominatedSortingPopulation population,
-			EpsilonBoxDominanceArchive archive, Selection selection,
-			Variation variation, Initialization initialization) {
+	public NSGAII(Problem problem, NondominatedSortingPopulation population, EpsilonBoxDominanceArchive archive, Selection selection, Variation variation,
+			Initialization initialization) {
 		super(problem, population, archive, initialization);
 		this.selection = selection;
 		this.variation = variation;
@@ -98,46 +91,41 @@ public class NSGAII extends AbstractEvolutionaryAlgorithm implements
 
 		if (selection == null) {
 			System.err.print("running non Concurrent iterate() section - TODO jcfgonc");
-			
+
 			// recreate the original NSGA-II implementation using binary
 			// tournament selection without replacement; this version works by
 			// maintaining a pool of candidate parents.
 			LinkedList<Solution> pool = new LinkedList<Solution>();
-			
-			DominanceComparator comparator = new ChainedComparator(
-					new ParetoDominanceComparator(),
-					new CrowdingComparator());
-			
+
+			DominanceComparator comparator = new ChainedComparator(new ParetoDominanceComparator(), new CrowdingComparator());
+
 			while (offspring.size() < populationSize) {
 				// ensure the pool has enough solutions
-				while (pool.size() < 2*variation.getArity()) {
+				while (pool.size() < 2 * variation.getArity()) {
 					List<Solution> poolAdditions = new ArrayList<Solution>();
-					
+
 					for (Solution solution : population) {
 						poolAdditions.add(solution);
 					}
-					
+
 					PRNG.shuffle(poolAdditions);
 					pool.addAll(poolAdditions);
 				}
-				
+
 				// select the parents using a binary tournament
 				Solution[] parents = new Solution[variation.getArity()];
-				
+
 				for (int i = 0; i < parents.length; i++) {
-					parents[i] = TournamentSelection.binaryTournament(
-							pool.removeFirst(),
-							pool.removeFirst(),
-							comparator);
+					parents[i] = TournamentSelection.binaryTournament(pool.removeFirst(), pool.removeFirst(), comparator);
 				}
-				
+
 				// evolve the children
 				offspring.addAll(variation.evolve(parents));
 			}
 		} else {
 			// run NSGA-II using selection with replacement; this version allows
 			// using custom selection operators
-			
+
 			// parallelized by jcfgonc@gmail.com
 			ConcurrentLinkedQueue<Solution> newChildren = new ConcurrentLinkedQueue<>();
 
@@ -145,13 +133,17 @@ public class NSGAII extends AbstractEvolutionaryAlgorithm implements
 				int missingChilds = populationSize - offspring.size();
 				try {
 					SharedParallelConsumer.parallelForEach(missingChilds, index -> {
-						int arity = variation.getArity();
-						Solution[] parents = selection.select(arity, population);
+						try {
+							int arity = variation.getArity();
+							Solution[] parents = selection.select(arity, population);
 
-						Solution[] children = variation.evolve(parents);
+							Solution[] children = variation.evolve(parents);
 
-						for (Solution child : children) {
-							newChildren.add(child);
+							for (Solution child : children) {
+								newChildren.add(child);
+							}
+						} catch (Exception e) {
+							e.printStackTrace();
 						}
 					});
 				} catch (Exception e) {
@@ -159,7 +151,7 @@ public class NSGAII extends AbstractEvolutionaryAlgorithm implements
 					System.exit(-1);
 				}
 				offspring.addAll(newChildren);
-				newChildren.clear(); 
+				newChildren.clear();
 			}
 		}
 //		t.getTimeDeltaLastCall();
@@ -180,18 +172,17 @@ public class NSGAII extends AbstractEvolutionaryAlgorithm implements
 //		t.getTimeDeltaLastCall();
 		population.truncate(populationSize);
 //		System.out.printf("NSGAII:population.truncate took %f seconds\n", t.getTimeDeltaLastCall());
-
-//		System.out.println("NSGAII iterate() done.");
+//		System.out.printf("NSGAII\tpopulation\t%d\toffspring\t%d\tarchive\t%d\n", population.size(), offspring.size(), archive.size());
 	}
 
 	@Override
 	public EpsilonBoxDominanceArchive getArchive() {
-		return (EpsilonBoxDominanceArchive)super.getArchive();
+		return (EpsilonBoxDominanceArchive) super.getArchive();
 	}
 
 	@Override
 	public NondominatedSortingPopulation getPopulation() {
-		return (NondominatedSortingPopulation)super.getPopulation();
+		return (NondominatedSortingPopulation) super.getPopulation();
 	}
 
 }

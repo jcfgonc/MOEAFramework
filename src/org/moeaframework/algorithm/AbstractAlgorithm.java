@@ -137,7 +137,11 @@ public abstract class AbstractAlgorithm implements Algorithm {
 
 	@Override
 	public void evaluate(Solution solution) {
-		problem.evaluate(solution);
+		try {
+			problem.evaluate(solution);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 //		numberOfEvaluations++;
 	}
 
